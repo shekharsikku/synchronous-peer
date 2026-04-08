@@ -1,0 +1,14 @@
+# node_modules
+node_modules
+
+# editor directories
+.idea
+.vscode
+
+# environment variables
+.env
+.env.*
+
+# dist/build dirs
+**/test
+**/dist
