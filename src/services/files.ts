@@ -1,5 +1,5 @@
 import { Readable } from "node:stream";
-import { GridFSBucket, MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+import { GridFSBucket, MongoClient, ObjectId, ServerApiVersion, type GridFSFile } from "mongodb";
 import { logger } from "#/middlewares/index.js";
 import { HttpError } from "#/utils/response.js";
 import env from "#/utils/env.js";
@@ -37,11 +37,26 @@ class FilesService {
     await this.mongo.connect();
   }
 
-  async uploadFile(fileData: Express.Multer.File, userId: string) {
-    const readableStream = new Readable();
+  private createId(fileId: string) {
+    if (!ObjectId.isValid(fileId)) {
+      throw new HttpError(400, "Invalid file id!");
+    }
 
-    readableStream.push(fileData.buffer);
-    readableStream.push(null);
+    return new ObjectId(fileId);
+  }
+
+  private async findFile(objectId: ObjectId) {
+    const fileData = await this.bucket.find({ _id: objectId }).next();
+
+    if (!fileData) {
+      throw new HttpError(404, "File not found!");
+    }
+
+    return fileData;
+  }
+
+  async uploadFile(fileData: Express.Multer.File, userId: string) {
+    const readableStream = Readable.from(fileData.buffer);
 
     const uploadStream = this.bucket.openUploadStream(fileData.originalname, {
       metadata: {
@@ -52,23 +67,22 @@ class FilesService {
 
     readableStream.pipe(uploadStream);
 
-    return await new Promise<{ fid: ObjectId }>((resolve, reject) => {
+    return await new Promise<{ fileData: GridFSFile | null }>((resolve, reject) => {
       uploadStream.on("finish", () => {
-        resolve({ fid: uploadStream.id });
+        resolve({ fileData: uploadStream.gridFSFile });
       });
 
-      uploadStream.on("error", reject);
+      uploadStream.on("error", (err) => {
+        logger.error({ err }, "File upload error!");
+        reject(new HttpError(500, "Failed to upload file!"));
+      });
     });
   }
 
   async getFile(fileId: string) {
-    const objectId = new ObjectId(fileId);
+    const objectId = this.createId(fileId);
 
-    const [fileData] = await this.bucket.find({ _id: objectId }).toArray();
-
-    if (!fileData) {
-      throw new HttpError(404, "File not found!");
-    }
+    const fileData = await this.findFile(objectId);
 
     const fileStream = this.bucket.openDownloadStream(objectId);
 
@@ -76,16 +90,12 @@ class FilesService {
   }
 
   async deleteFile(fileId: string, userId: string) {
-    const objectId = new ObjectId(fileId);
+    const objectId = this.createId(fileId);
 
-    const fileData = await this.bucket.find({ _id: objectId }).next();
-
-    if (!fileData) {
-      throw new HttpError(404, "File not found!");
-    }
+    const fileData = await this.findFile(objectId);
 
     if (fileData.metadata?.["fileOwner"] !== userId) {
-      throw new HttpError(403, "Deletion not allowed!");
+      throw new HttpError(403, "File deletion is not permitted!");
     }
 
     await this.bucket.delete(objectId);
