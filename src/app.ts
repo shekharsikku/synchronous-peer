@@ -25,6 +25,7 @@ app.use(
   cors({
     origin: env.CORS_ORIGIN,
     credentials: true,
+    maxAge: env.CORS_MAXAGE,
   })
 );
 
@@ -74,8 +75,6 @@ app.get("/", (req: Request, res: Response) => {
   const name = req.query["name"] ?? "Unknown";
   return new HttpResponse(200, `Express + Peer says hello to ${name}!`).send(res);
 });
-
-
 
 /**  Global Error Handler */
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

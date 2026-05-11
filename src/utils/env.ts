@@ -1,4 +1,4 @@
-import { cleanEnv, str, url, port } from "envalid";
+import { cleanEnv, str, url, num, port } from "envalid";
 import "dotenv/config";
 
 const env = cleanEnv(process.env, {
@@ -9,6 +9,7 @@ const env = cleanEnv(process.env, {
   COOKIES_SECRET: str(),
   PAYLOAD_LIMIT: str(),
   CORS_ORIGIN: str(),
+  CORS_MAXAGE: num(),
   PORT: port(),
 
   NODE_ENV: str({

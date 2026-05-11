@@ -10,6 +10,7 @@ const peerServer = ExpressPeerServer(server, {
   corsOptions: {
     origin: env.CORS_ORIGIN,
     credentials: true,
+    maxAge: env.CORS_MAXAGE,
   },
   allow_discovery: env.isDev,
 });
