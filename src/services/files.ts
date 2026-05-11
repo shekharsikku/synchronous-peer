@@ -3,6 +3,7 @@ import { GridFSBucket, MongoClient, ObjectId, ServerApiVersion, type GridFSFile 
 import { logger } from "#/middlewares/index.js";
 import { HttpError } from "#/utils/response.js";
 import env from "#/utils/env.js";
+import sharp from "sharp";
 
 class FilesService {
   private mongo: MongoClient;
@@ -56,20 +57,28 @@ class FilesService {
   }
 
   async uploadFile(fileData: Express.Multer.File, userId: string) {
+    const imageMeta = await sharp(fileData.buffer).metadata();
     const readableStream = Readable.from(fileData.buffer);
 
     const uploadStream = this.bucket.openUploadStream(fileData.originalname, {
       metadata: {
         contentType: fileData.mimetype,
         fileOwner: userId,
+        dimensions: {
+          width: imageMeta.width,
+          height: imageMeta.height,
+        },
       },
     });
 
     readableStream.pipe(uploadStream);
 
-    return await new Promise<{ fileData: GridFSFile | null }>((resolve, reject) => {
+    return await new Promise<GridFSFile>((resolve, reject) => {
       uploadStream.on("finish", () => {
-        resolve({ fileData: uploadStream.gridFSFile });
+        if (!uploadStream.gridFSFile) {
+          return reject(new HttpError(500, "Failed to upload file!"));
+        }
+        resolve(uploadStream.gridFSFile);
       });
 
       uploadStream.on("error", (err) => {
