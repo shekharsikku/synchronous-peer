@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "trailingComma": "es5",
+  "ignorePatterns": ["node_modules", ".idea", ".vscode", ".env", ".env.*", "**/dist", "**/test"]
+}

@@ -8,6 +8,7 @@ node_modules
 # environment variables
 .env
 .env.*
+!.env.example
 
 # dist/build dirs
 **/test
