@@ -5,17 +5,13 @@ import pino from "pino";
 import env from "#/utils/env.js";
 import { HttpError } from "#/utils/response.js";
 
-const storage = multer.diskStorage({
-  destination: function (_req, _file, cb) {
-    cb(null, "./public/temp");
-  },
-  filename: function (_req, file, cb) {
-    cb(null, file.originalname);
+/** Multer File Uploader */
+export const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    files: 20 * 1024 * 1024,
   },
 });
-
-/** Multer File Uploader */
-export const upload = multer({ storage });
 
 /** Rate Limiter */
 export const limiter = (minute = 10, limit = 1000) => {

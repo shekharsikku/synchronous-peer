@@ -5,6 +5,7 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
+import { MulterError } from "multer";
 import { pinoHttp } from "pino-http";
 import requestIp from "request-ip";
 import { limiter, logger } from "#/middlewares/index.js";
@@ -83,6 +84,11 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof HttpError) {
     req.log.warn({ err }, "Handled http error!");
     return new HttpResponse(err.code, err.message).send(res);
+  }
+
+  if (err instanceof MulterError) {
+    req.log.error({ err }, "Multer upload error!");
+    return new HttpResponse(400, err.message).send(res);
   }
 
   req.log.error({ err }, "Unhandled http error!");

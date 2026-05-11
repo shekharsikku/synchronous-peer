@@ -1,4 +1,4 @@
-import type { Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 
 type SuccessStatusCode = 200 | 201 | 202 | 204;
 type ErrorStatusCode = 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503;
@@ -56,3 +56,19 @@ export class HttpResponse<T = unknown, E = unknown> {
     return res.status(this.code).json(this.toJSON());
   }
 }
+
+export const asyncHandler = <P = {}, ResBody = unknown, ReqBody = unknown, ReqQuery = {}>(
+  func: (
+    req: Request<P, ResBody, ReqBody, ReqQuery>,
+    res: Response<ResBody>,
+    next: NextFunction
+  ) => void | Response | Promise<void | Response>
+) => {
+  return async (req: Request<P, ResBody, ReqBody, ReqQuery>, res: Response<ResBody>, next: NextFunction) => {
+    try {
+      return await func(req, res, next);
+    } catch (err) {
+      return next(err);
+    }
+  };
+};
