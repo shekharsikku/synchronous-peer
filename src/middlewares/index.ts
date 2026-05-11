@@ -1,0 +1,48 @@
+import type { Request } from "express";
+import { rateLimit } from "express-rate-limit";
+import multer from "multer";
+import pino from "pino";
+import env from "#/utils/env.js";
+import { HttpError } from "#/utils/response.js";
+
+const storage = multer.diskStorage({
+  destination: function (_req, _file, cb) {
+    cb(null, "./public/temp");
+  },
+  filename: function (_req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
+
+/** Multer File Uploader */
+export const upload = multer({ storage });
+
+/** Rate Limiter */
+export const limiter = (minute = 10, limit = 1000) => {
+  return rateLimit({
+    windowMs: minute * 60 * 1000,
+    limit: limit,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req: Request) => {
+      return req.clientIp!;
+    },
+    handler: (req: Request) => {
+      req.log.error(`Rate limit exceeded for IP: ${req.clientIp}`);
+      throw new HttpError(429, "Maximum number of requests exceeded!");
+    },
+  });
+};
+
+const otherOptions = env.isDev ? { transport: { target: "pino-pretty", options: { colorize: true } } } : { base: null };
+
+/** Pino Http Logger */
+export const logger = pino({
+  level: env.LOG_LEVEL,
+  redact: {
+    paths: ["req.headers.cookie", "res.headers['set-cookie']", "res.headers['content-security-policy']"],
+    remove: true,
+  },
+  msgPrefix: "[SYNCHRONOUS] ",
+  ...otherOptions,
+});
