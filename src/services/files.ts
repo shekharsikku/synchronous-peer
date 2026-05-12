@@ -111,6 +111,21 @@ class FilesService {
 
     return fileData;
   }
+
+  async deleteOlder(date: Date) {
+    const query = { uploadDate: { $lt: date } };
+
+    const cursor = this.bucket.find(query);
+
+    let count = 0;
+
+    for await (const file of cursor) {
+      await this.bucket.delete(file._id);
+      count++;
+    }
+
+    return { count };
+  }
 }
 
 export const filesService = new FilesService(env.GRIDFS_URI, env.GRIDFS_DB, env.GRIDFS_BKT);
