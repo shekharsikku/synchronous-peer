@@ -18,45 +18,24 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-/** Pino - HttpLogger */
-app.use(pinoHttp({ logger }));
-
-/** CORS - Allow Origin */
-app.use(
-  cors({
-    origin: env.CORS_ORIGIN,
-    credentials: true,
-    maxAge: env.CORS_MAXAGE,
-  })
-);
-
-/** Body Parser - Json & Form Data */
-app.use(
-  express.json({
-    limit: env.PAYLOAD_LIMIT,
-    strict: true,
-  })
-);
-
-app.use(
-  express.urlencoded({
-    limit: env.PAYLOAD_LIMIT,
-    extended: true,
-  })
-);
-
 /** Trust Proxy */
 if (env.isProd) {
   app.set("trust proxy", 1);
 }
 
-/** Request IP Address */
+/** Logging */
+app.use(pinoHttp({ logger }));
+
+/** Security */
+app.use(cors({ origin: env.CORS_ORIGIN, credentials: true, maxAge: env.CORS_MAXAGE }));
 app.use(requestIp.mw());
 
-/** Cookies Parser */
+/** Parsing */
 app.use(cookieParser(env.COOKIES_SECRET));
+app.use(express.json({ limit: env.PAYLOAD_LIMIT, strict: true }));
+app.use(express.urlencoded({ limit: env.PAYLOAD_LIMIT, extended: true }));
 
-/** Body Compression */
+/** Compression */
 app.use(
   compression({
     filter: (req: Request, res: Response) => {
@@ -66,32 +45,30 @@ app.use(
   })
 );
 
-/** Public Static Assets */
+/** Static Files */
 app.use("/public/temp", express.static(join(__dirname, "../public/temp")));
 
-/** Rate Limiter & Api Routers */
+/** API Routes */
 app.use("/api", limiter(), routers);
 
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (req: Request<{}, {}, {}, { name?: string }>, res: Response) => {
   const name = req.query["name"] ?? "Unknown";
   return new HttpResponse(200, `Express + Peer says hello to ${name}!`).send(res);
 });
 
-/**  Global Error Handler */
+/** Error Handler */
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) return next(err);
 
-  if (err instanceof HttpError) {
-    req.log.warn({ err }, "Handled http error!");
-    return new HttpResponse(err.code, err.message).send(res);
-  }
-
   if (err instanceof MulterError) {
-    req.log.error({ err }, "Multer upload error!");
     return new HttpResponse(400, err.message).send(res);
   }
 
-  req.log.error({ err }, "Unhandled http error!");
+  if (err instanceof HttpError) {
+    return new HttpResponse(err.code, err.message).send(res);
+  }
+
+  req.log.error({ err }, "Unhandled server error!");
   return new HttpResponse(500, "Internal server error!").send(res);
 });
 
