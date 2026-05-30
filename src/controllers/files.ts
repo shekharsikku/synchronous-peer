@@ -1,5 +1,5 @@
 import { filesService } from "#/services/files.js";
-import { HttpError, HttpResponse, asyncHandler } from "#/utils/response.js";
+import { HttpError, HttpResponse, asyncHandler } from "#/utilities/response.js";
 
 export const uploadFile = asyncHandler<{}, {}, {}, { uid: string }>(async (req, res) => {
   const fileData = req.file;

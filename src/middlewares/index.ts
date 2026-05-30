@@ -2,8 +2,8 @@ import type { Request } from "express";
 import { rateLimit } from "express-rate-limit";
 import multer from "multer";
 import pino from "pino";
-import env from "#/utils/env.js";
-import { HttpError } from "#/utils/response.js";
+import env from "#/utilities/env.js";
+import { HttpError } from "#/utilities/response.js";
 
 /** Multer File Uploader */
 export const upload = multer({

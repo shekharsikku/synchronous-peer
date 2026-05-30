@@ -1,8 +1,10 @@
 import { createServer } from "node:http";
+import type { Request, Response } from "express";
 import { ExpressPeerServer } from "peer";
 import { logger } from "#/middlewares/index.js";
-import env from "#/utils/env.js";
+import env from "#/utilities/env.js";
 import app from "#/app.js";
+import { HttpResponse } from "./utilities/response.js";
 
 const server = createServer(app);
 
@@ -24,5 +26,10 @@ peerServer.on("disconnect", (client) => {
 });
 
 app.use("/synchronous", peerServer);
+
+app.use((req: Request, res: Response) => {
+  const message = `Requested url '${req.url}' no found!`;
+  return new HttpResponse(404, message).send(res);
+});
 
 export default server;

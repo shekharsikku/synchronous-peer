@@ -1,7 +1,7 @@
 import { filesService } from "#/services/files.js";
 import { logger } from "#/middlewares/index.js";
 import jobs from "#/services/jobs.js";
-import env from "#/utils/env.js";
+import env from "#/utilities/env.js";
 import server from "#/server.js";
 
 const port = env.PORT;
